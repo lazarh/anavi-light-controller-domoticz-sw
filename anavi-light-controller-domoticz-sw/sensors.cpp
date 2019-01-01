@@ -76,7 +76,7 @@ void handleHTU21D()
       sensorHumidityNum = 3;
     }
     
-    sprintf(htu21d_value, "%.2f;%.2f", sensorTemperature, sensorHumidity, sensorHumidityNum);
+    sprintf(htu21d_value, "%.2f;%.2f;%d", sensorTemperature, sensorHumidity, sensorHumidityNum);
     publishSensorDataDomoticz(th_devid, htu21d_value);
   }
 }
