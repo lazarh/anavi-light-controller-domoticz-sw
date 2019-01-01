@@ -346,21 +346,21 @@ void factoryReset()
 }
 
 void mqttCallback(char* topic, byte* payload, unsigned int length)
-{ 
+{
   // Convert received bytes to a string
   char text[length + 1];
   snprintf(text, length + 1, "%s", payload);
   Serial.print("Message arrived [");
   Serial.print(topic);
-  Serial.print("] len[");  
-  Serial.print(length);  
-  Serial.println("] ");  
-  
+  Serial.print("] len[");
+  Serial.print(length);
+  Serial.println("] ");
+
   if (strcmp(topic, domoticz_out) == 0)
   {
     DynamicJsonBuffer jsonBuffer;
     JsonObject& data = jsonBuffer.parseObject(text);
-    
+
     if (data.containsKey(String("idx")))
     {
       const int idx = data["idx"];
@@ -383,17 +383,17 @@ void mqttCallback(char* topic, byte* payload, unsigned int length)
         }
 
         calculateBrightness();
-        
+
         if (data.containsKey("nvalue"))
         {
           const int nvalue = data[String("nvalue")];
           if (nvalue == 0)
           {
-            power = false;           
+            power = false;
           }
           else
           {
-            power = true;            
+            power = true;
           }
         }
 
@@ -422,7 +422,7 @@ void mqttCallback(char* topic, byte* payload, unsigned int length)
           analogWrite(pinLedBlue, 0);
         }
       }
-    }     
+    }
   }
 }
 
@@ -567,6 +567,7 @@ void handleHTU21D()
 {
   // Check if temperature has changed
   const float tempTemperature = htu.readTemperature();
+  int sensorHumidityNum = 0;
 
   // Check if humidity has changed
   const float tempHumidity = htu.readHumidity();
@@ -594,7 +595,24 @@ void handleHTU21D()
     // Publish new humidity value through MQTT
     publishSensorData("humidity", "humidity", sensorHumidity);
 
-    sprintf(htu21d_value, "%.2f;%.2f", sensorTemperature, sensorHumidity);
+    // Mapping for Humidity_status:
+    // 0    = Normal
+    // 1    <> 46-70%   = Comfortable
+    // 2    < 46        = Dry
+    // 3    > 70%       = Wet
+
+    if ((sensorHumidity >= 46) && (sensorHumidity <= 70))
+    {
+      sensorHumidityNum = 1;
+    } else if (sensorHumidity < 46) 
+    {
+      sensorHumidityNum = 2;
+    } else if (sensorHumidity > 70) 
+    {
+      sensorHumidityNum = 3;
+    }
+    
+    sprintf(htu21d_value, "%.2f;%.2f", sensorTemperature, sensorHumidity, sensorHumidityNum);
     publishSensorDataDomoticz(th_devid, htu21d_value);
   }
 }
